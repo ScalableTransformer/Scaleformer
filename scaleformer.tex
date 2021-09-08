@@ -1,0 +1,528 @@
+\hypertarget{scaleformer-scalable-transformer-with-linear-complexity-and-relative-positional-encoding}{%
+\section{scaleformer : scalable transformer with linear complexity and
+relative positional
+encoding}\label{scaleformer-scalable-transformer-with-linear-complexity-and-relative-positional-encoding}}
+
+Benoit Favier*, Walter Dal'Maz Silva
+
+* Phealing
+
+\hypertarget{abstract}{%
+\subsection{Abstract}\label{abstract}}
+
+\hypertarget{introduction}{%
+\subsection{Introduction}\label{introduction}}
+
+\href{https://arxiv.org/abs/1706.03762}{Vaswani et al.~(2017)}
+introduced the transformers, a simpler network to model
+squence-to-sequence translations tackling new heights of problem
+complexity. The improvements were due to the non sequential nature of
+its training process which allowed better parallelization and thus fast
+training of big models, and due to improved long term dependencies
+thanks to the intrinsec good gradient flows of the attention mechanism.
+However the original transformer presented some drawbacks. It has a
+quadratic complexity with sequences length, what represents a major
+drawback to it's scalability. The positional encoding induce a different
+initial embedding for the same group of words at different position in
+the sentence, which is detrimental for generalization. The absolute
+positional encoding is also detrimental for the extrapolation to
+sequences longer than training sequences - even for the initially
+proposed sinusoidal positional encoding.
+
+Ever since, significant research effort have been made to alleviate
+these problems. Several strategies have been proposed to reduce the
+quadratic complexity with sequence length, and the relative positional
+encoding further improved the performances of the model. These
+improvements have opened the path to the application of transformers to
+image analysis where scalability and positional invariance are of upmost
+importance. However most proposed architecture we are aware of only
+alleviated parts of the issues, by being incompatible with relative
+positional encoding, having no scheme for masked attention - thus being
+restrained to encoder-only models, or being complex to use/implement -
+needing custom operations programed in CUDA or introducing stochastic
+methods.
+
+In the present work, by assembling together and building over ideas
+developped in several works, we propose a complete encoder-decoder
+transformer model (with unidirectional and bidirectional attention),
+with linear complexity with regards to sequence length, compatible with
+relative positional encoding, and that can be implemented with usual
+functions of neural network frameworks without requiring custom CUDA
+code.
+
+In the present work we propose a complete encoder-decoder transformer
+model that scales linearly with large sequence lengths, by putting
+together ideas developped across several
+works{[}\href{https://arxiv.org/abs/1706.03762}{Vaswani et al.~(2017)},
+\href{https://arxiv.org/abs/1812.01243}{Shen et al.~(2018)},
+\href{https://arxiv.org/abs/2006.16236}{Katharopoulos et al.~(2020)},
+\href{https://arxiv.org/abs/2009.14794}{Choromanski et al.~(2020)},
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)},
+\href{https://arxiv.org/abs/2102.07680}{Horn et al.~(2021)}{]}. It
+remains compatible with relative positional encoding, and can be
+implemented with usual functions of neural network frameworks without
+requiring custom CUDA code.
+
+\hypertarget{i.-background}{%
+\subsection{I. Background}\label{i.-background}}
+
+\hypertarget{i.1-the-original-multihead-attention-mechanism}{%
+\subsection{I.1 The original multihead attention
+mechanism}\label{i.1-the-original-multihead-attention-mechanism}}
+
+The scaled dotproduct attention proposed by
+\href{https://arxiv.org/abs/1706.03762}{Vaswani et al.~(2017)}
+transforms the vectorial embedding \(\vec{Y}_i\) of a token as a
+function of a sequence of other embeddings \(\vec{X}_j\). Where
+\(\vec{Y}_i\) and \(\vec{X}_j\) are all vectors of size \(D\). A key
+\(\vec{K}_j\) and value \(\vec{V}_j\) are attributed to each vector
+\(\vec{X}_j\), and query \(\vec{Q}_i\) is attributed to \(\vec{Y}_i\).
+The vectors are obtained by linear projection from dimension \(D\) to
+\(d\) using three matrices of learnable parameters. The new vector
+\(\vec{y}_i'\) is a weighted sum of the \(\vec{V}_j\). The weights are
+scores of matching between the query \(\vec{Q}_i\) and the keys
+\(\vec{K}_j\), calculated as the dot product between the two vectors.
+They are also softmaxed to sum up to 1. The transformation of \(L_Q\)
+vectors \(\vec{Y}_i\) as a function of \(L_K\) vectors \(\vec{X}_j\) can
+be efficiently computed with matrix multiplications:
+
+\[A = softmax\left(\frac{Q \times K^T}{\sqrt{d}}\right) \times V\]
+
+With \(Q\) a matrix of shape \((L_Q, d)\), \(K\) a matrix of shape
+\((L_K, d)\) and \(V\) a matrix of shape \((L_K, d)\). The \(\sqrt{d}\)
+at the denominator is a scaling factor used to avoid saturation in the
+exponentials of the softmax function.
+
+The multihead attention performs \(h\) different projections into spaces
+of dimension \(d = D/h\). The resulting vector \(\vec{Y}_i'\) is the
+concatenation of the \(h\) vectors \(\vec{y}_i'\) obtained. Thus the
+embedding dimension is preserved. Using multiple heads was found
+beneficial by the authors over using a single head of dimension
+\(d = D\).
+
+During training, the cross entropy of the \(n^{th}\) predicted token is
+calculated assuming all previous tokens have been generated correctly.
+This enables to parallelize training completly without need for
+recurence. However as the \(n^{th}\) token should not depend of the
+following tokens, the cells in the upper right corner of the score
+matrix are set to \(-\infty\) such that after the softmax they are equal
+to 0, and the rows still sums up to 1.
+
+\hypertarget{i.2-improving-transformers-scalability-with-sequence-length}{%
+\subsection{I.2 Improving Transformer's scalability with sequence
+length}\label{i.2-improving-transformers-scalability-with-sequence-length}}
+
+The original attention mechanism requires the computation of a score
+matrix \(Q \times K^T\) of shape \((L_Q, L_K)\), with complexity
+\(O(L_QdL_K)\). If the query and key sequence lengths are multiplied by
+two, then the memory used and computation time are multiplied by 4. To
+improve the scalability of the transformer with sequence length, several
+axis of research have been explored.
+
+\href{https://arxiv.org/abs/2001.04451}{Kitaev et al.~(2020)} proposed
+the Reformer's architecture, which uses an hash bucketting algorithm to
+reduce the complexity of the original multi head attention operation
+from o(L²) to o(Lxlog(L)).
+
+\href{https://arxiv.org/abs/1901.02860}{Dai et al.~(2019)} proposed the
+Transformer-XL's architecture, which cuts the sequence in segments of
+length L. The model predicts each stage of the current segment as a
+function of the previous and current segment. All the segments are
+computed sequently with a recurence mechanism. The complexity is linear
+with sequence length, but the computation cannot be completly
+parallelized due to the recurence mechanism, althought more than a RNN,
+as segments can be computed in one go.
+
+Other publications explored using a sparse attention matrix, such as the
+Longformer by \href{https://arxiv.org/abs/2004.05150}{Beltagy et
+al.~(2020)} and the Big Bird model by
+\href{https://arxiv.org/abs/2007.14062}{Zaheer et al.~(2021)}. As each
+token attends to a fixed number of all other tokens, the scalability is
+improved. These sparse attention models however require custom
+operations implemented in CUDA.
+
+Some other works propose to modify the attention mechanism to be
+compatible with linear complexity. The Linformer by
+\href{https://arxiv.org/abs/2006.04768}{Wang et al.~(2020)} projects the
+key and values onto a smaller sequence length dimension with matrix
+multiplication. It can't however generalize to sequences longer than
+during training, as the weights of the projection for such tokens would
+be undefined.
+
+\href{https://arxiv.org/abs/1812.01243}{Shen et al.~(2018)} proposed to
+replace the softmax attention score.
+\(A = softmax\left(\frac{Q \times K^T}{\sqrt{d}}\right) \times V\) is
+changed into \(A = \rho(Q) \times \rho(K)^T \times V\). With \(\rho\)
+the softmax function along the embedding dimension. Thanks to matrix
+multiplication comutativity, the order of the operations can be chosen.
+If \(Q\), \(K\) and \(V\) are of shape \((L_Q, d)\), \((L_K, d)\) and
+\((L_K, d)\) respectively, the complexity of
+\((\phi(Q) \times \phi(K)^T) \times V\) is
+\(O(L_Q \times d \times L_K)\) whereas the complexity of
+\(\phi(Q) \times (\phi(K)^T \times V)\) is
+\(O\left(max(L_Q, L_k) \times d^2 \right)\). The right-side-first
+operation is linear in complexity with sequence length. The shape of the
+intermediate result matrix is also changed, allowing to scale the better
+in memory requirements as well. The original softmaxed attention score
+matrix was giving rows of positive scores that sum to 1. With this
+change the elements of the score matrix remain positive as \(\phi(Q)\)
+and \(\phi(K)^T\) are matrices of positive values, but the rows of the
+score matrix does not sum up to 1. This work also does not give a linear
+complexity formulation for masked attention. If the right-side-first
+scheme is adopted, the attention score matrix
+\(\phi(Q) \times \phi(K)^T\) is never explicitly computed, and can't be
+masked.
+
+Building on this idea of comutative attention function proposed by
+\href{https://arxiv.org/abs/1812.01243}{Shen et al.~(2018)},
+\href{https://arxiv.org/abs/2006.16236}{Katharopoulos et al.~(2020)}
+introduced their kernerlized attention function as:
+
+\[A = \frac{\phi(Q) \times \phi(K)^T}{\sum_j \left( \phi(Q) \times \phi(K)^T \right)} \times V\]
+
+The function \(\phi\) is applied elementwise and can be any positive
+function, for example \(\phi(x) = elu(x) + 1\). This attention is
+row-wise normalized so that all rows of the score matrix are sets of
+positive weights adding up to one. This preserves the objective of the
+original softmaxed attention scores, while allowing to perform
+operations in an optimal order.
+
+The Performer by \href{https://arxiv.org/abs/2009.14794}{Choromanski et
+al.~(2020)} exploits the same idea of a kernelized attention introduced
+by \href{https://arxiv.org/abs/2006.16236}{Katharopoulos et al.~(2020)},
+with an algorithm that betters approximate softmaxed attention. Most
+importantly they also give in annex a prefix sum algorithm to perform
+operations in the right-side-first order while giving the same result as
+masked left-side-first operation.
+
+Althought the author didn't specify how to implement it, the only
+implementations we found of this operation requires custom CUDA code. In
+this work we will give an implementation of the right-side-first masked
+operation, with usual functions from neural network frameworks, that
+remains linear in complexity.
+
+\hypertarget{i.3-alternatives-to-absolute-positional-encoding}{%
+\subsection{I.3 Alternatives to absolute positional
+encoding}\label{i.3-alternatives-to-absolute-positional-encoding}}
+
+The original multihead attention operation introduced by
+\href{https://arxiv.org/abs/1706.03762}{Vaswani et al.~(2017)} was
+intrinsecly invariant by token order permutation. As token position was
+an important information for sequence to sequence models, they encoded
+the global position of each token in their embedding. Since then, some
+modified attention mechanisms, that depend on relative tokens position,
+have been proposed.
+
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)} explored
+modifying the attention mechanism so that it depends on the relative
+distance between tokens. A second score matrix that is function of the
+query and the query/key relative distance is added to the original score
+matrix that only depends on query/key vector representation.
+\[A = softmax\left(\frac{Q \times K^T}{\sqrt{d}}\right) \times V\]
+becomes
+\[A = \left(\frac{Q \times K^T + S_{rel}}{\sqrt{d}}\right) \times V\]
+With \(S_{rel}\) of shape \((L_Q, L_K)\) defined as
+\({S_{rel}}_{ij} = \vec{Q_i} \sdot \vec{RP}_{clip(i-j, -k, k)}\). Where
+\(k\) is the attention horizon length and \(\vec{RP}_n\) is one of
+\(2k+1\) relative positional embeddings, vectors of size \(d\).
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)} and
+\href{https://arxiv.org/abs/1809.04281}{Anna Huang et al.~(2018)}
+observed that introducing this attention scheme improved performances.
+The naive calculation of this term however has a complexity of
+\(O(L_QL_Kd)\). No algorithm was provided to linearize the complexity.
+
+More recently \href{https://arxiv.org/abs/2105.08399}{Liutkus et
+al.~(2021)} gives a stochastic positional encoding that is linear in
+complexity with regards to sequence length. However the implementation
+is complex and its stochastic nature requires that the operations be
+repeated several times in parallel.
+
+\href{https://arxiv.org/abs/2102.07680}{Horn et al.~(2021)} noted that
+the term \(S^{rel} \times V\) can be computed with linear complexity for
+the case where \(RP_{-k} = RP_{k}\). However this is restraining as the
+model can't make the difference between tokens before the attention
+horizon or after.
+
+In this work we will show that the computation of \(S^{rel} \times V\)
+can also be done with linear complexity, without concession.
+
+\hypertarget{ii-masked-attention-implementation}{%
+\subsection{II Masked attention
+implementation}\label{ii-masked-attention-implementation}}
+
+In this section we will detail the prefix sum algorithm proposed by
+\href{https://arxiv.org/abs/2009.14794}{Choromanski et al.~(2020)} for
+masked kernelized attention, and give an implementation with usual
+functions of neural network frameworks.
+
+\[A^{masked} = masked \left( \phi(Q) \times \phi(K^T) \right) \times V\]
+
+In this expression, \(masked\) being the operation that set all cells
+above the diagonal to 0 in a matrix. The naive implementation of this
+operation has complexity \(O(L_QL_Kd)\)
+
+We can change the complexity using the operation proposed by
+\href{https://arxiv.org/abs/2009.14794}{Choromanski et al.~(2020)}. We
+will derive its formulation here.
+
+\(A^{masked}\) is defined as: \[A^{masked} = S^{masked} \times V\] which
+in summation form is expressed as:
+\[A^{masked}_{ij} = \sum_k V_{kj} \times S^{masked}_{ik}\] and the
+elements of S are defined as: \[S^{masked}_{ik} =
+\begin{cases}
+    \sum_l \left( \phi(Q)_{il} \times \phi(K)_{kl} \right) \text{ if } k \leq i\\
+    0 \text{ otherwise}
+\end{cases}\] Putting these elements together leads to:
+\[A^{masked}_{ij}= \sum_{k=1}^i V_{kj} \times \sum_l \left( \phi(Q)_{il} \times \phi(K)_{kl} \right)\]
+which can be reworked as:
+\[A^{masked}_{ij}= \sum_l \phi(Q)_{il} \times \sum_{k=1}^i \left( V_{kj} \times \phi(K)_{kl} \right)\]
+
+In this work we make use of these ideas to implement the calculation of
+\(A^{masked}\) with complexity \(O(max(L_Q, L_K) \times d^2)\) without
+custom GPU code as per the following algorithm:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \(\phi(Q)\), \(\phi(K)\), \(V\) tensors of shape \((L_Q, 1, d)\),
+  \((L_K, d)\), \((L_K, d)\)
+\item
+  \(Unrolled_{kjl} = V_{kj} \times \phi(K)_{kl}\) tensor of shape
+  \((L_K, d, d)\)
+\item
+  \(Right = cumsum(Unrolled,\text{ dim=0})\) tensor of shape
+  \((L_K, d, d)\)
+\item
+  \(Right = align(Right, L_Q)\) tensor of shape \((L_Q, d, d)\)
+\item
+  \(A^{masked} = \phi(Q) \otimes Right\) tensor of shape \((L_Q, 1, d)\)
+\end{enumerate}
+
+with:
+
+\begin{itemize}
+\tightlist
+\item
+  \(\otimes\) the batch matrix product along the last two dimensions
+\item
+  \(cumsum(\_, dim=0)\) the function that calculates the cumulated sum
+  along the first dimension
+\item
+  \(align(\_, L_Q)\) the function that extend the first dimensions to
+  size \(L_Q\) by repeating the last element if \(L_Q > L_K\), or
+  truncate to size \(L_Q\) if \(L_Q < L_K\). (Can be implemented with
+  slicing and concatenation)
+\end{itemize}
+
+\hypertarget{iii-linear-complexity-rpe-implementation}{%
+\subsection{III Linear complexity RPE
+implementation}\label{iii-linear-complexity-rpe-implementation}}
+
+In this section we will detail how the relative positional encoding
+proposed by \href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)}
+can in fact be computed with linear complexity. The \(S_{rel}\) matrix
+of scores is computed as
+\({S_{rel}}_{ij} = \vec{Q_i} \sdot \vec{RP}_{clip(i-j, -k, k)}\). Here
+below the colors represent the index of the query and the number the
+index of the relative position.
+
+\begin{figure}
+\centering
+\includegraphics{images/S_rel.png}
+\caption{S\_rel calculation}
+\end{figure}
+
+This score matrix must then be multiplied by the matrix of value
+vectors: \(A_{rel} = S_{rel} \times V\). Each row can be interpreted as
+a set of weights in the weighted sum of the value vectors.
+
+\begin{figure}
+\centering
+\includegraphics{images/S_rel_V.png}
+\caption{A\_rel calculation}
+\end{figure}
+
+One can observe that the some weights are repeated several times in the
+\(S_{rel}\) matrix. So calculating the whole matrix can be avoided by
+instead calculating the dot product of each query vector with each
+relative position's embedding (complexity
+\(O \left(L_Q\times d\times(2k+1)\right)\)). The operation can then be
+decomposed in three terms: the lower triangle, the diagonal and the
+upper triangle respectively. * A set of weights that multiply a
+cumulated sum of value vectors (complexity \(O(max(L_Q, L_K))\)) * A
+elementwise multipliation between two tensors (complexity
+\(O(L_Q\times (2k-1) \times d)\)) * A set of weights that multiply a
+cumulated sum of value vectors (complexity \(O(max(L_Q, L_K))\))
+
+\begin{figure}
+\centering
+\includegraphics{images/S_rel_V_detailed.png}
+\caption{A\_rel simplified calculation}
+\end{figure}
+
+Thus the attention can in fact be computed with linear complexity if we
+get rid of the softmax function.
+
+The memory used can be further reduced by observing that the right side
+of the second element is a strided view of a padded copy of the value
+matrix. Moving of one cell along the first dimension is equivalent to
+moving along one cell of the second dimension.
+
+The calculation can be implemented as follow, using zero-based slice
+notation for compactness:
+
+\begin{itemize}
+\tightlist
+\item
+  \(\phi(Q)\), \(\phi(V)\) and \(RP\), are matrices of shape
+  \((L_Q, d)\), \((L_K, d)\) and \((2k+1, d)\) respectively
+\item
+  The dot product of each query and each relative position embedding is
+  calculated as \(weights = \phi(Q) \times RP^T\)
+\item
+  The weights of the horizon before and after are
+  \(H_{before} = weights_{[:, 0]}\) and
+  \(H_{after} = weights_{[:, -1]}\)
+\item
+  The weights of the diagonal are defined as
+  \(window = weights_{[:,1:-1]}\). For the masked case, columns on the
+  right of the \(k^{th}\) columns are set to 0
+  (\(window_{[:, k+1:]} = 0\))
+\item
+  The left term is calculated as
+  \(left = H_{before} * align(lower, min(max(0, L_Q-k), L_K))\) with
+  \(lower\) the concatenation of:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    a tensor of zeros of shape \(\left(min(k, L_Q), d\right)\)
+  \item
+    \(cumsum(V, dim=0)\)
+  \end{itemize}
+\item
+  The middle term is calculated as \(middle = diagonal \odot strided\)
+  with \(strided\) the strided view of:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    a tensor of 0 of shape \((max(0, k-1), d)\)
+  \item
+    the value matrix \(V\)
+  \item
+    a tensor of shape \((max(0, L_Q-L_K), d)\)
+  \end{itemize}
+\item
+  The right term is calculated as \(right = 0\) for masked case, or for
+  bidirectional case, \(right = H_{right} * reverse\), with reverse the
+  concatenation of:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    a tensor of 0 of shape \((L_Q-max(0, L_K-k), d)\)
+  \item
+    \(sum(V_{[inf, sup]}, dim=0) - cumsum(V_{[inf, sup-1]}, dim=0)\)
+    with \(inf = k-1\), \(sup = min(L_Q+k, L_K)\)
+  \end{itemize}
+\item
+  The resulting attention function is \(A = left + middle + right\)
+\end{itemize}
+
+with:
+
+\begin{itemize}
+\tightlist
+\item
+  \(*\) the elementwise multiplication
+\item
+  \(\odot\) the elementwise multiplication followed by sum along second
+  dimension
+\item
+  all concatenations done along the first dimension
+\end{itemize}
+
+\hypertarget{iv-linear-scalable-transformer-model}{%
+\subsection{IV Linear Scalable Transformer
+model}\label{iv-linear-scalable-transformer-model}}
+
+As stated earlier, the proposed model proposes the replacement of the
+scaled dot-product attention from original Transformer architecture by a
+kernelized attention with relative positional encoding
+
+The proposed model replaces the scaled-dot-product-attention by a
+kernelized attention with RPE. Following the observations of
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)} that
+cumulating absolute positional encoding with relative positional
+encoding yield no benefits, the positional encoding is also removed -
+althought for some specific applications it might be beneficial to
+maintain it. The algorithm used to calculate each term is chosen
+dynamically to occupy the least memory depending on the sequence lengths
+and embedding dimensions - as memory usage is easier to evaluate
+precisely than execution time.
+
+In this work we have chosen the following formulation, with
+\(\phi(x) = elu(x) + 1\).
+
+\[A = \frac{\left( \phi(Q) \times \phi(K^T) + S^{rel} \right)}{\sum_j \left( \phi(Q) \times \phi(K^T) + S^{rel} \right)} \times V\]
+
+This is essentially a combination of two terms: the kernelized attention
+proposed by \href{https://arxiv.org/abs/2006.16236}{Katharopoulos et
+al.~(2020)}, and the relative positional encoding proposed by
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)}. The left
+term is the score matrix of shape \((L_Q, L_K)\), with a denominator
+which scales all rows so that they sum to 1. For the sake of the
+implementation, the multiplication must be distributed as:
+
+\[A = \frac{\left( \phi(Q) \times \phi(K^T) \times V \right) + \left( S^{rel} \times V\right)}{\sum_j \left( \phi(Q) \times \phi(K^T) \right) + \sum_j \left( S^{rel} \right)}\]
+
+The denominator can be easily calculated by applying the (naive or
+linear complexity) algorithms with V replaced by a matrix of shape
+\((L_K, 1)\) full of 1.
+
+For each case (masked/bidirectional) the algorithm is chosen between
+naive and linear complexity to occupy the least memory.
+
+\begin{itemize}
+\tightlist
+\item
+  for the masked \(Q \times K^T \times V\) term, the memory occupied by
+  the naive algorithm is \(L_QL_K\) while the linear complexity
+  algorithm occupies \(d^2 \times max(L_Q, L_K)\)
+\item
+  for the bidirectional \(Q \times K^T \times V\) term, the memory
+  occupied by the naive algorithm is \(L_QL_K\) while the linear
+  complexity algorithm occupies \(d^2\)
+\item
+  for the \(S_{rel} \times V\) term (masked and bidirectional), the
+  memory occupied by the naive algorithm is \(L_QL_K\) while the linear
+  complexity algorithm occupies \(L_Q \times (2k+1 + 4)\)
+\end{itemize}
+
+\hypertarget{v-results}{%
+\subsection{V results}\label{v-results}}
+
+\includegraphics{images/timings/runtimes_RPE.png}
+
+\includegraphics{images/timings/runtimes_KA.png}
+
+\includegraphics{images/timings/runtimes_MHA.png}
+
+\hypertarget{conclusion}{%
+\subsection{Conclusion}\label{conclusion}}
+
+In the present work an easily implemented algorithm to compute
+\href{https://arxiv.org/abs/1803.02155}{Shaw et al.~(2018)}'s relative
+positional embedding with linear complexity has been presented. An
+implementation of \href{https://arxiv.org/abs/2009.14794}{Choromanski et
+al.~(2020)}'s prefix sum algorithm that doesn't requires custom CUDA
+code (while maintaining linear complexity) was also presented.
+
+These two elements allowed to define a kernelized attention function
+with relative positional encoding, that can be computed with linear
+complexity with regards to sequence length. The proposed model presents
+linear scalability with sequence length, can be implemented out of the
+boxe in neural network framework, and is adapted to sequence to sequence
+problems instead of being restricted to encoders only models.
