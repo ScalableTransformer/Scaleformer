@@ -1,0 +1,7 @@
+\section{Conclusion}
+
+In the present work an easily implemented algorithm to compute\citet{shaw2018selfattention} relativepositional embedding with linear complexity has been presented. Animplementation of \citet{choromanski2021rethinking} prefix sum algorithm that doesn't requires custom CUDAcode (while maintaining linear complexity) was also presented.
+
+These two elements allowed to define a kernelized attention functionwith relative positional encoding, that can be computed with linearcomplexity with regards to sequence length. The proposed model presentslinear scalability with sequence length, can be implemented out-of-the-box in neural network framework, and is adapted to sequence to sequenceproblems instead of being restricted to encoders only models.
+
+\endinput
