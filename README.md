@@ -1,2 +1,3 @@
 # Scaleformer
-A scalable transformer with linear complexity
+
+A scalable transformer with linear complexity.

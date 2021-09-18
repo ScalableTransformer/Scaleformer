@@ -1,3 +1,13 @@
+# LaTeX stuff
+*.aux
+*.bbl
+*.bib.*
+*.blg
+*.sav
+*.out
+*.pdf
+*.synctex*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
