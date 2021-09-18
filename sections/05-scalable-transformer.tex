@@ -1,0 +1,38 @@
+\section{Linear Scalable Transformermodel}
+
+As stated earlier, the proposed model proposes the replacement of thescaled dot-product attention from original Transformer architecture by akernelized attention with relative positional encoding
+
+The proposed model replaces the scaled-dot-product-attention by akernelized attention with RPE. Following the observations of\citet{shaw2018selfattention} thataccumulating absolute positional encoding with relative positionalencoding yield no benefits, the positional encoding is also removed -although for some specific applications it might be beneficial tomaintain it. The algorithm used to calculate each term is chosendynamically to occupy the least memory depending on the sequence lengthsand embedding dimensions - as memory usage is easier to evaluateprecisely than execution time.
+
+In this work we have chosen the following formulation, with$\phi(x) = elu(x) + 1$.
+
+\begin{equation}
+A = \frac{\left( \phi(Q) \times \phi(K^T) + S^{rel} \right)}{\sum_j \left( \phi(Q) \times \phi(K^T) + S^{rel} \right)} \times V
+\end{equation}
+
+This is essentially a combination of two terms: the kernelized attentionproposed by  \citet{katharopoulos2020transformers}, and the relative positional encoding proposed by\citet{shaw2018selfattention}. The leftterm is the score matrix of shape $(L_Q, L_K)$, with a denominatorwhich scales all rows so that they sum to 1. For the sake of theimplementation, the multiplication must be distributed as:
+
+\begin{equation}
+A = \frac{\left( \phi(Q) \times \phi(K^T) \times V \right) + \left( S^{rel} \times V\right)}{\sum_j \left( \phi(Q) \times \phi(K^T) \right) + \sum_j \left( S^{rel} \right)}
+\end{equation}
+
+The denominator can be easily calculated by applying the (naive orlinear complexity) algorithms with V replaced by a matrix of shape$(L_K, 1)$ full of 1.
+
+For each case (masked/bidirectional) the algorithm is chosen betweennaive and linear complexity to occupy the least memory.
+
+\begin{itemize}
+\item
+for the masked $Q \times K^T \times V$ term, the memory occupied by
+the naive algorithm is $L_QL_K$ while the linear complexity
+algorithm occupies $d^2 \times max(L_Q, L_K)$
+\item
+for the bidirectional $Q \times K^T \times V$ term, the memory
+occupied by the naive algorithm is $L_QL_K$ while the linear
+complexity algorithm occupies $d^2$
+\item
+for the $S_{rel} \times V$ term (masked and bidirectional), the
+memory occupied by the naive algorithm is $L_QL_K$ while the linear
+complexity algorithm occupies $L_Q \times (2k+1 + 4)$
+\end{itemize}
+
+\endinput
