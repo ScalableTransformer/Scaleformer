@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Any
 from typing import Optional
 from typing import Tuple
 from typing import List
@@ -121,27 +122,33 @@ def train_loop(model: torch.nn.Module, optimizer: torch.optim.Optimizer,
     return train_losses, val_losses, best_epoch
 
 
-def plot_loss(train_loss, val_loss, best_epoch):
-    """
-    display losses of the training
-    """
-    f, ax = plt.subplots()
-    ax.plot(range(len(train_loss)), train_loss, label="training")
-    ax.plot(range(len(val_loss)), val_loss, label="validation")
+def plot_loss(
+    train_loss: List[float],
+    valid_loss: List[float],
+    best_epoch: int
+    ) -> Any:
+    """ Display losses of the training/validation. """
+    fig, ax = plt.subplots()
+
+    ax.plot(train_loss, label="training")
+    ax.plot(valid_loss, label="validation")
     ax.axvline(best_epoch)
+
     ax.set_xlabel("epoch")
     ax.set_ylabel("loss")
     ax.set_yscale("log")
-    ax.legend()
-    plt.show()
+    ax.legend(loc="best")
+
+    return fig
 
 
-def strings_to_tensor(strings: List[str], tokenizer: BytePairEncoder):
-    """
-    converts strings into a tensor
-    """
+def strings_to_tensor(
+    strings: List[str], 
+    tokenizer: BytePairEncoder
+    ) -> torch.Tensor:
+    """ Converts strings into tensors through tokenizer. """
     encoded = [tokenizer.encode(s) for s in strings]
-    L_padding = max(len(e) for e in encoded)
+    padding = max(len(e) for e in encoded)
     padded = [[tokenizer.START] + e + [tokenizer.END]
-              + [tokenizer.PAD]*(L_padding - len(e)) for e in encoded]
+              + [tokenizer.PAD] * (padding - len(e)) for e in encoded]
     return torch.tensor(padded, dtype=torch.long)

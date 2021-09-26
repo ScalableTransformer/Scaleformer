@@ -16,9 +16,7 @@ import pathlib
 
 
 class SpecialToken:
-    """
-    Special tokens for the <START>, <END>, <PAD>, ... tokens
-    """
+    """ Special tokens for the <START>, <END>, <PAD>, ... """
     def __repr__(self):
         return f"<{self.name}>"
 
@@ -37,8 +35,7 @@ class SpecialToken:
 
 
 class BytePairEncoder:
-    """
-    byte level Byte Pair Encoding (BPE) is a method of subword tokenization
+    """ Byte Pair Encoding (BPE) is a method of subword tokenization.
 
     Attributes
     ----------
@@ -51,8 +48,7 @@ class BytePairEncoder:
 
     @classmethod
     def load(cls, file: str) -> 'BytePairEncoder':
-        """
-        Load a model from the disk (must be a .json)
+        """ Load a model from the disk (must be a .json).
 
         Parameters
         ----------
@@ -83,8 +79,7 @@ class BytePairEncoder:
 
     def __init__(self, code: Dict[int, Tuple[int, ...]] = dict(),
                  dropout: Optional[float] = None):
-        """
-        Build a BytePairEncoder tokenizer
+        """ Build a BytePairEncoder tokenizer.
 
         Parameters
         ----------
@@ -100,8 +95,7 @@ class BytePairEncoder:
     def train(self, sentences: List[str], max_tokens: int = 5000,
               min_frequency: float = 1.0E-6, verbose: bool = True,
               word_piece: bool = True, prune: bool = False):
-        """
-        Trains the byte pair encoding
+        """ Trains the byte pair encoding.
 
         Parameters
         ----------
@@ -152,9 +146,7 @@ class BytePairEncoder:
     def encode(self, sentence: str, regularize: bool = False,
                start_token: bool = False, end_token: bool = False,
                padded_size: Optional[int] = None) -> List[int]:
-        """
-        Apply the tokenization
-        """
+        """ Apply tokenization to sentence. """
         if regularize and self.dropout is not None:
             # TODO : improve performances
             sentence = list(sentence.encode("utf-8"))
@@ -175,22 +167,19 @@ class BytePairEncoder:
         return sentence
 
     def decode(self, encoded: List[int]) -> str:
-        """
-        Decode a tokenized sentence
-        """
+        """ Decode a tokenized sentence. """
         vocabulary = self.vocabulary
         subwords = [vocabulary[i] for i in encoded]
         decoded = b"".join(b for b in subwords if isinstance(b, bytes))
         return decoded.decode("utf-8", errors="replace")
 
     def split(self, sentence: str, regularize: bool = False) -> List[str]:
-        """Returns the sentence splited token by token"""
+        """ Returns the sentence splited token by token. """
         vocab = self.vocabulary
         return [vocab[i] for i in self.encode(sentence, regularize)]
 
     def save(self, file: str, overwrite: bool = True):
-        """
-        Saves a model to the disk (as .json)
+        """ Saves a model to the disk (as .json).
 
         Parameters
         ----------
@@ -267,9 +256,7 @@ class BytePairEncoder:
         return self._word_indexes[SpecialToken("PAD")]
 
     def _mergeables(self, sentences: Iterable[str]) -> Iterable[str]:
-        """
-        Extract all mergeables substrings
-        (series of digits or series of letters)
+        """ Extract all mergeables substrings (series of digits or letters).
 
         Example
         -------
@@ -293,9 +280,7 @@ class BytePairEncoder:
                     tokens_count: Dict[int, int], n_tokens: int,
                     max_tokens: int, min_frequency: float,
                     verbose: bool, prune: bool) -> int:
-        """
-        Fills the code dictionnary with new token until not possible anymore
-        """
+        """ Fills the code dictionnary with new token while possible. """
         # the size in bytes of each token
         token_sizes = {i: 1 for i in range(256)}
         for i in count(1):
