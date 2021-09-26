@@ -163,55 +163,60 @@ class TransformerDecoder(torch.nn.Module):
 
 
 class Transformer(torch.nn.Module):
+    """ Transformer model in PyTorch.
 
+    Parameters
+    ----------
+    tokenizer_in : BytePairEncoder
+        input sentences tokenizer
+    tokenizer_out : BytePairEncoder
+        target sentences tokenizer
+    n_stages : int
+        number of stages of the transformer
+    projection_dim : int
+        dimension of the Q, K, V projected spaces
+    n_heads : int
+        number of heads
+    dropout : float
+        dropout probability
+    activation : str
+        name of the activation function of the feed forwards
+    scalable : bool
+        if True, use ScalableAttention
+    """
     def __init__(self, tokenizer_in: BytePairEncoder,
                  tokenizer_out: BytePairEncoder,
                  n_stages: int, projection_dim: int, n_heads: int,
                  dropout: float = 0., activation: str = "relu",
                  scalable: bool = True):
-        """
-        Parameters
-        ----------
-        tokenizer_in : BytePairEncoder
-            input sentences tokenizer
-        tokenizer_out : BytePairEncoder
-            target sentences tokenizer
-        n_stages : int
-            number of stages of the transformer
-        projection_dim : int
-            dimension of the Q, K, V projected spaces
-        n_heads : int
-            number of heads
-        dropout : float
-            dropout probability
-        activation : str
-            name of the activation function of the feed forwards
-        scalable : bool
-            if True, use ScalableAttention
-        """
         super().__init__()
         self.tokenizer_in = tokenizer_in
         self.tokenizer_out = tokenizer_out
         vocab_in = tokenizer_in.vocabulary
         vocab_out = tokenizer_out.vocabulary
+
         # embedding in
         self.embedding_in = torch.nn.Embedding(len(vocab_in),
                                                projection_dim*n_heads)
         self.dropout_in = torch.nn.Dropout(dropout)
+
         # encoder
         self.encoder = TransformerEncoder(n_stages, projection_dim, n_heads,
                                           dropout=dropout,
                                           activation=activation,
                                           scalable=scalable)
+
         # embedding out
         self.embedding_out = torch.nn.Embedding(len(vocab_out),
                                                 projection_dim*n_heads)
         self.dropout_out = torch.nn.Dropout(dropout)
+
         # decoder
         self.decoder = TransformerDecoder(n_stages, projection_dim, n_heads,
                                           dropout=dropout,
                                           activation=activation,
                                           scalable=scalable)
+
         # output
         self.output = torch.nn.Linear(projection_dim*n_heads, len(vocab_out))
 
