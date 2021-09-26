@@ -5,6 +5,10 @@
 # Sandboxes
 sandbox*
 
+# Trained data
+samples/models/*.pty
+samples/tokenizer/*.json
+
 # LaTeX stuff
 *.aux
 *.bbl
