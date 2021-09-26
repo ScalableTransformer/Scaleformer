@@ -1,3 +1,7 @@
+# Editor stuff
+*.vs*
+*.devcontainer/
+
 # LaTeX stuff
 *.aux
 *.bbl
