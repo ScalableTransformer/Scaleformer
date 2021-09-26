@@ -1,1 +1,2 @@
-
+matplotlib==3.3.4
+torch==1.9.0a0+df837d0
