@@ -4,11 +4,12 @@ from ._tokenizer import BytePairEncoder
 from ._functions import train_loop
 from ._functions import strings_to_tensor
 from ._functions import plot_loss
-
-__author__ = 'Benoit Favier'
-__version__ = '0.1.0'
+from .version import author as __author__
+from .version import version as __version__
 
 __all__ = [
+    '__author__',
+    '__version__',
     'Transformer',
     'BytePairEncoder',
     'train_loop',
