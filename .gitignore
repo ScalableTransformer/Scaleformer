@@ -2,6 +2,9 @@
 *.vs*
 *.devcontainer/
 
+# Sandboxes
+sandbox*
+
 # LaTeX stuff
 *.aux
 *.bbl
@@ -9,7 +12,6 @@
 *.blg
 *.sav
 *.out
-*.pdf
 *.synctex*
 
 # Byte-compiled / optimized / DLL files
