@@ -1,8 +1,10 @@
-import torch
-import copy
-import matplotlib.pyplot as plt
+# -*- coding: utf-8 -*-
 from typing import Optional
-from typing import Tuple, List
+from typing import Tuple
+from typing import List
+import copy
+import torch
+import matplotlib.pyplot as plt
 from ._tokenizer import BytePairEncoder
 
 

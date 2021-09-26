@@ -1,8 +1,10 @@
-import torch
+# -*- coding: utf-8 -*-
+from typing import Optional
+from typing import Tuple
 import math
-from ._functions import mask_chronological
+import torch
 import torch.nn.functional as F
-from typing import Optional, Tuple
+from ._functions import mask_chronological
 
 
 class ScalableAttention(torch.nn.Module):

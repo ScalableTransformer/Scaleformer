@@ -1,10 +1,18 @@
-import re
+# -*- coding: utf-8 -*-
 from random import random
-from itertools import count, chain
-from collections import Counter, deque
-import pathlib
+from collections import Counter
+from collections import deque
+from itertools import count
+from itertools import chain
+from typing import List
+from typing import Tuple
+from typing import Iterable
+from typing import Iterator
+from typing import Dict
+from typing import Optional
+import re
 import json
-from typing import List, Tuple, Iterable, Iterator, Dict, Optional
+import pathlib
 
 
 class SpecialToken:

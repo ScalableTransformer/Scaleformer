@@ -1,6 +1,9 @@
-import torch
+# -*- coding: utf-8 -*-
+from typing import Optional
+from typing import Union
+from typing import Tuple
 import math
-from typing import Optional, Union, Tuple
+import torch
 
 
 class MultiHeadAttention(torch.nn.Module):

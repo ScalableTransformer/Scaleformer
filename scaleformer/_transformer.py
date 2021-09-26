@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
 from os import error
-import torch
+from typing import Union
+from typing import Optional
+from typing import Tuple
 import math
-from typing import Union, Optional, Tuple
+import torch
 from ._tokenizer import BytePairEncoder
-from ._functions import positional_encoding, mask_chronological
+from ._functions import positional_encoding
+from ._functions import mask_chronological
 from ._functions import strings_to_tensor
 from ._multihead_attention import MultiHeadAttention
 from ._scalable_attention import ScalableAttention
