@@ -1,26 +1,37 @@
-\section{Masked attentionimplementation}
+\section{Masked attention
+implementation}
 
-In this section we will detail the prefix sum algorithm proposed by\citet{choromanski2021rethinking} for masked kernelized attention, and give an implementation with usualfunctions of neural network frameworks.
+In this section we will detail the prefix sum algorithm proposed by
+\citet{choromanski2021rethinking} for
+ masked kernelized attention, and give an implementation with usual
+functions of neural network frameworks.
 
 \begin{equation}
 A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K^T) \right) \times V
 \end{equation}
 
-In this expression, $\mathrm{masked}$ being the operation that set all cells above the diagonal to 0 in a matrix. The naive implementation of this operation has complexity $O(L_QL_Kd)$.
+In this expression, $\mathrm{masked}$ being the operation that set all cells
+ above the diagonal to 0 in a matrix. The naive implementation of this
+ operation has complexity $O(L_QL_Kd)$.
 
-We can change the complexity using the operation proposed by \citet{choromanski2021rethinking}. We will derive its formulation here. To start with it, $A^{masked}$ is defined as
+We can change the complexity using the operation proposed by
+ \citet{choromanski2021rethinking}. We
+ will derive its formulation here.
+ To start with it, $A^{masked}$ is defined as
 
 \begin{equation}
 A^{masked} = S^{masked} \times V
 \end{equation}
 
-\noindent{}whichin summation form is expressed as
+\noindent{}which
+in summation form is expressed as
 
 \begin{equation}
 A^{masked}_{ij} = \sum_k V_{kj} \times S^{masked}_{ik}
 \end{equation}
 
-\noindent{}and theelements of S are defined as:
+\noindent{}and the
+elements of S are defined as:
 
 \begin{equation}
 S^{masked}_{ik} =
@@ -42,38 +53,25 @@ A^{masked}_{ij}= \sum_{k=1}^i V_{kj} \times \sum_l \left( \phi(Q)_{il} \times \p
 A^{masked}_{ij}= \sum_l \phi(Q)_{il} \times \sum_{k=1}^i \left(V_{kj} \times \phi(K)_{kl} \right)
 \end{equation}
 
-In this work we make use of these ideas to implement the calculation of $A^{masked}$ with complexity $O(max(L_Q, L_K) \times d^2)$ without custom GPU code as per the following algorithm:
+In this work we make use of these ideas to implement the calculation of
+ $A^{masked}$ with complexity $O(max(L_Q, L_K) \times d^2)$ without
+ custom GPU code as per the algorithm \ref{alg:A_masked}.
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\item
-$\phi(Q)$, $\phi(K)$, $V$ tensors of shape $(L_Q, 1, d)$,
-$(L_K, d)$, $(L_K, d)$
-\item
-$Unrolled_{kjl} = V_{kj} \times \phi(K)_{kl}$ tensor of shape
-$(L_K, d, d)$
-\item
-$Right = cumsum(Unrolled,\text{ dim=0})$ tensor of shape
-$(L_K, d, d)$
-\item
-$Right = align(Right, L_Q)$ tensor of shape $(L_Q, d, d)$
-\item
-$A^{masked} = \phi(Q) \otimes Right$ tensor of shape $(L_Q, 1, d)$
-\end{enumerate}
-
-\noindent{}with
-
-\begin{itemize}
-\item
-$\otimes$ the batch matrix product along the last two dimensions
-\item
-$cumsum(\_, dim=0)$ the function that calculates the cumulated sum
-along the first dimension
-\item
-$align(\_, L_Q)$ the function that extend the first dimensions to
-size $L_Q$ by repeating the last element if $L_Q > L_K$, or
-truncate to size $L_Q$ if $L_Q < L_K$. (Can be implemented with
-slicing and concatenation)
-\end{itemize}
-
-\endinput
+\begin{algorithm}[H]
+	\caption{calculation of $A^{masked}$ with linear complexity}
+	\label{alg:A_masked}
+	\KwData{$\phi(Q)$, $\phi(K)$, $V$ tensors of shape $(L_Q, d)$, $(L_K, d)$, and $(L_K, d)$}
+	\KwResult{$A^{masked}$ tensor of shape $(L_Q, d)$}
+	$\text{UNROLLED}_{kjl} := V_{kj} \times \phi(K)_{kl}$ tensor of shape $(L_K, d, d)$\\
+	$\text{RIGHT} := cumsum\left(\text{UNROLLED}, \text{dim}=0\right)$\\
+	\uIf{$L_{K} < L_{Q}$}
+	{
+		$\text{LAST}_{i,j,k} := RIGHT_{L_K-1,j,k}$ tensor of shape $(L_Q - L_K, d, d)$\\
+		$\text{RIGHT} := concatenate\left(\text{RIGHT}, \text{LAST}, \text{dim}=0\right)$
+	}
+	\ElseIf{$L_{K} > L_{Q}$}
+	{
+		$\text{RIGHT} := \text{RIGHT}_{[:L_Q, :, :]}$
+	}
+	$A^{masked}_{ij} = \sum_k \left( \phi(Q)_{ik} \times \text{RIGHT}_{ikj} \right)$
+\end{algorithm}
