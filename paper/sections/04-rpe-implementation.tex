@@ -14,7 +14,7 @@ index of the relative position.
 \label{fig:S_rel}
 \end{figure}
 
-Finally we calculate $A_{rel} = S_{rel} \times V$. Each row of the $A_{rel}$ matrix is a weighted sum of the value vectors $V_i$. Each row of $S_{rel}$ is a set of weights.
+The relative positional encoding's term of the attention is calculated as $A_{rel} = S_{rel} \times V$. Each row of the $A_{rel}$ matrix is a weighted sum of the value vectors $V_i$. Each row of $S_{rel}$ is a set of weights.
 
 \begin{figure}
 \centering
@@ -26,18 +26,7 @@ Finally we calculate $A_{rel} = S_{rel} \times V$. Each row of the $A_{rel}$ mat
 One can observe in figure \ref{fig:A_rel_naive} that some weights are repeated several times in the
 $S_{rel}$ matrix. Calculating the whole matrix can be avoided by
 instead calculating all possible weights only once, with complexity
-$O \left(L_Q\times d\times(2k+1)\right)$). As illustrated in figure \ref{fig:A_rel_linear}, the matrix multiplication can then be
-replaced by a sum of three terms:
-
-\begin{itemize}
-\item A set of weights that multiply a
-accumulated sum of value vectors (complexity $O(max(L_Q, L_K))$)
-\item An
-element-wise multiplication between two tensors (complexity
-$O(L_Q\times (2k-1) \times d)$)
-\item A set of weights that multiply a
-accumulated sum of value vectors (complexity $O(max(L_Q, L_K))$).
-\end{itemize}
+$O \left(L_Q\times d\times(2k+1)\right)$). As illustrated in figure \ref{fig:A_rel_linear}, the matrix multiplication can then be replaced by a sum of three terms. The embedding dimension of size $d$ is not represented here. Instead the horizontal axis in the figure represents all terms that must be summed. The grey squares represent some zero-padding. The first term is a cumulated sum of the value vectors that is weighted  by the before-horizon set of weights (complexity $O(max(L_Q, L_K))$). The second term is a weighed sum of a moving window of the value vectors. Where the weights are the central diagonal of the $S_{rel}$ matrix. (complexity $O(L_Q \times (2k-1) \times d)$). The last term is similar to the first term, but for the after-horizon set of weights (complexity $O(max(L_Q, L_K))$). The implementation is given in algorithm \ref{alg:A_rel}. The algorithm is given for bidirectional attention only, but it can easily be adapted for masked attention.
 
 \begin{figure}
 \centering
@@ -46,82 +35,40 @@ accumulated sum of value vectors (complexity $O(max(L_Q, L_K))$).
 \label{fig:A_rel_linear}
 \end{figure}
 
-Thus the attention can in fact be computed with linear complexity if we
-get rid of the softmax function.
-
-The memory used can be further reduced by observing that the right side
-of the second element is a strided view of a padded copy of the value
-matrix. Moving of one cell along the first dimension is equivalent to
-moving along one cell of the second dimension.
-
-The calculation can be implemented as follow, using zero-based slice
-notation for compactness:
-
-\begin{itemize}
-	\item
-	$\phi(Q)$, $\phi(V)$ and $RP$, are matrices of shape
-	$(L_Q, d)$, $(L_K, d)$ and $(2k+1, d)$ respectively
-	\item
-	The dot product of each query and each relative position embedding is
-	calculated as $weights = \phi(Q) \times RP^T$
-	\item
-	The weights of the horizon before and after are
-	$H_{before} = weights_{[:, 0]}$ and
-	$H_{after} = weights_{[:, -1]}$
-	\item
-	The weights of the diagonal are defined as
-	$window = weights_{[:,1:-1]}$. For the masked case, columns on the
-	right of the $k^{th}$ columns are set to 0
-	($window_{[:, k+1:]} = 0$)
-	\item
-	The left term is calculated as
-	$left = H_{before} * align(lower, min(max(0, L_Q-k), L_K))$ with
-	$lower$ the concatenation of:
-	
-	\begin{itemize}
-		\item
-		a tensor of zeros of shape $\left(min(k, L_Q), d\right)$
-		\item
-		$cumsum(V, dim=0)$
-	\end{itemize}
-	\item
-	The middle term is calculated as $middle = diagonal \odot strided$
-	with $strided$ the strided view of:
-	
-	\begin{itemize}
-		\item
-		a tensor of 0 of shape $(max(0, k-1), d)$
-		\item
-		the value matrix $V$
-		\item
-		a tensor of shape $(max(0, L_Q-L_K), d)$
-	\end{itemize}
-	\item
-	The right term is calculated as $right = 0$ for masked case, or for
-	bidirectional case, $right = H_{right} * reverse$, with reverse the
-	concatenation of:
-	
-	\begin{itemize}
-		\item
-		a tensor of 0 of shape $(L_Q-max(0, L_K-k), d)$
-		\item
-		$sum(V_{[inf, sup]}, dim=0) - cumsum(V_{[inf, sup-1]}, dim=0)$
-		with $inf = k-1$, $sup = min(L_Q+k, L_K)$
-	\end{itemize}
-	\item
-	The resulting attention function is $A = left + middle + right$
-\end{itemize}
-
-with:
-
-\begin{itemize}
-	\item
-	$*$ the element-wise multiplication
-	\item
-	$\odot$ the element-wise multiplication followed by sum along second
-	dimension
-	\item
-	all concatenations done along the first dimension
-\end{itemize}
+\begin{algorithm}[H]
+	\caption{calculation of $A_{rel}$ with linear complexity}
+	\label{alg:A_rel}
+	\KwData{$\phi(Q)$, $RP$, $V$ tensors of shape $(L_Q, d)$, $(2k+1, d)$, and $(L_K, d)$}
+	\KwResult{$A_{rel}$ tensor of shape $(L_Q, d)$}
+	$W := \phi(Q) \times RP^T$\\
+	$W_{before} := W_{[:, 0]}$\\
+	$n_{before} := min(max(0, L_Q-k), L_K)$\\
+	$\text{Padding}_{before} := zeros(min(k, L_Q), d)$\\
+	$\text{Padded}_{before} := concatenate(\text{Padding}_{before}, cumsum(V))$\\
+	$V_{before} := aligned(\text{Padded}_{before}, n_{before})$\\
+	$W_{horizon} := W_{[:, 1:2k-1]}$\\
+	$V^{horizon} := zeros(L_Q, 2k-1, d)$\\
+	\For{$i=0$ \KwTo $L_Q-1$}
+	{
+		\For{$j=0$ \KwTo $2k-2$}
+		{
+			\For{$l=0$ \KwTo $d-1$}
+			{
+					$V^{horizon}_{ijl} =
+					\begin{cases}
+						V_{[i-k+1+j, l]}\text{ if }0 \leq (i-k+1+j) < L_K\\
+						0\text{ otherwise} 
+					\end{cases}$
+			}
+		}
+	}
+	$W_{after} := W_{[:, 2k]}$\\
+	$n_{after} := min(L_Q+k, L_K)$\\
+	$\text{Summed} := sum(V[k-1:n_{after}, :], \text{dim=0})$\\
+	$\text{rCumSum} := \text{Summed} - cumsum(V[k-1:n_{after}-1, :])$\\
+	$\text{Padding}_{after} := zeros(max(0, Lq-max(0, Lk-R)), D)$\\
+	$V_{after} := concatenate(\text{rCumSum}, \text{Padding}_{after})$\\
+	$A_{rel} := W_{before} \cdot V_{before} + sum(W_{horizon} \cdot V^{horizon}, \text{dim=1}) + W_{after} \cdot V_{after}$
+\end{algorithm}
 
 \endinput

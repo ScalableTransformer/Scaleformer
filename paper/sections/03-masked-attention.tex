@@ -1,13 +1,12 @@
-\section{Masked attention
-implementation}
+\section{Linear complexity masked attention}
 
 In this section we will detail the prefix sum algorithm proposed by
 \citet{choromanski2021rethinking} for
  masked kernelized attention, and give an implementation with usual
-functions of neural network frameworks.
+functions of neural network frameworks. The masked kernelized attention is defined as:
 
 \begin{equation}
-A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K^T) \right) \times V
+A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K)^T \right) \times V
 \end{equation}
 
 In this expression, $\mathrm{masked}$ being the operation that set all cells
@@ -17,7 +16,7 @@ In this expression, $\mathrm{masked}$ being the operation that set all cells
 We can change the complexity using the operation proposed by
  \citet{choromanski2021rethinking}. We
  will derive its formulation here.
- To start with it, $A^{masked}$ is defined as
+ To start with it, $A^{masked}$ is expressed as
 
 \begin{equation}
 A^{masked} = S^{masked} \times V
@@ -55,23 +54,29 @@ A^{masked}_{ij}= \sum_l \phi(Q)_{il} \times \sum_{k=1}^i \left(V_{kj} \times \ph
 
 In this work we make use of these ideas to implement the calculation of
  $A^{masked}$ with complexity $O(max(L_Q, L_K) \times d^2)$ without
- custom GPU code as per the algorithm \ref{alg:A_masked}.
+ custom GPU code as per the algorithm \ref{alg:A_masked}. With $align(tensor, n)$ the function that truncates or repeats the last value so that $tensor$ has length $n$ along the first dimension, $zeros(a, b, ...)$ the 0-initialized tensor of shape $(a, b, ...)$, and $cumsum(tensor)$ the function that returns the cumulated sum along the first dimension.
 
 \begin{algorithm}[H]
 	\caption{calculation of $A^{masked}$ with linear complexity}
 	\label{alg:A_masked}
 	\KwData{$\phi(Q)$, $\phi(K)$, $V$ tensors of shape $(L_Q, d)$, $(L_K, d)$, and $(L_K, d)$}
 	\KwResult{$A^{masked}$ tensor of shape $(L_Q, d)$}
-	$\text{UNROLLED}_{kjl} := V_{kj} \times \phi(K)_{kl}$ tensor of shape $(L_K, d, d)$\\
-	$\text{RIGHT} := cumsum\left(\text{UNROLLED}, \text{dim}=0\right)$\\
-	\uIf{$L_{K} < L_{Q}$}
+	$\text{Unrolled} := zeros(L_K, d, d)$\\
+	\For{$i=0$ \KwTo $L_Q-1$}
 	{
-		$\text{LAST}_{i,j,k} := RIGHT_{L_K-1,j,k}$ tensor of shape $(L_Q - L_K, d, d)$\\
-		$\text{RIGHT} := concatenate\left(\text{RIGHT}, \text{LAST}, \text{dim}=0\right)$
+		\For{$j=0$ \KwTo $d-1$}
+		{
+			$\text{Unrolled}_{kjl} = V_{kj} \times \phi(K)_{kl}$
+		}
 	}
-	\ElseIf{$L_{K} > L_{Q}$}
+	$\text{Right} := cumsum\left(\text{Unrolled}, \text{dim}=0\right)$\\
+	$\text{Aligned} := align(\text{Right}, L_Q)$\\
+	$A^{masked} := zeros(L_Q, d)$\\
+	\For{$i=0$ \KwTo $L_Q-1$}
 	{
-		$\text{RIGHT} := \text{RIGHT}_{[:L_Q, :, :]}$
+		\For{$j=0$ \KwTo $d-1$}
+		{
+			$A^{masked}_{ij} = \sum_k \left( \phi(Q)_{ik} \times \text{Aligned}_{ikj} \right)$
+		}
 	}
-	$A^{masked}_{ij} = \sum_k \left( \phi(Q)_{ik} \times \text{RIGHT}_{ikj} \right)$
 \end{algorithm}
