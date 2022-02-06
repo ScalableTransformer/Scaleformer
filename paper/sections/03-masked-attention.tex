@@ -54,7 +54,12 @@ A^{masked}_{ij}= \sum_l \phi(Q)_{il} \times \sum_{k=1}^i \left(V_{kj} \times \ph
 
 In this work we make use of these ideas to implement the calculation of
  $A^{masked}$ with complexity $O(max(L_Q, L_K) \times d^2)$ without
- custom GPU code as per the algorithm \ref{alg:A_masked}. With $align(tensor, n)$ the function that truncates or repeats the last value so that $tensor$ has length $n$ along the first dimension, $zeros(a, b, ...)$ the 0-initialized tensor of shape $(a, b, ...)$, and $cumsum(tensor)$ the function that returns the cumulated sum along the first dimension.
+ custom GPU code as per the algorithm \ref{alg:A_masked}. With:
+ \begin{itemize}
+ 	\item $align(tensor, n)$ the function that truncates or repeats the last value so that $tensor$ has length $n$ along the first dimension
+ 	\item $zeros(a, b, ...)$ the 0-initialized tensor of shape $(a, b, ...)$
+ 	\item $cumsum(tensor)$ the function that returns the cumulated sum along the given dimension
+ \end{itemize}
 
 \begin{algorithm}[H]
 	\caption{calculation of $A^{masked}$ with linear complexity}

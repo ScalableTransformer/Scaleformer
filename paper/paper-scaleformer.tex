@@ -5,7 +5,7 @@
 \maketitle%
 
 \begin{abstract}
-To overcome the quadratic complexity of the vanilla transformer with sequence length, some previous works proposed a kernelized attention mechanism, which has a linear complexity. Other works proposed the change the way the position of each token is encoded so that the model depends on relative distance between tokens instead of absolute position. In this work we propose a model that combines kernelized attention with relative positional encoding while still scaling linearly in complexity. Furthermore we propose to dynamically chose the most favourable order of commutative operations. While giving the same results, different operation orders have memory usage and computational cost that depends differently on embedding dimension and sequence length.
+To overcome the quadratic complexity with sequence length of the vanilla transformer, some previous works proposed a kernelized attention mechanism which scales linearly. Other works proposed to change the way the position of each token is encoded so that the model depends on relative distance between tokens instead of absolute position. In this work we propose to combine kernelized attention with relative positional encoding while still scaling linearly in complexity thanks to a novel algorithm.
 \end{abstract}
 
 \input{sections/01-introduction.tex}
@@ -16,7 +16,8 @@ To overcome the quadratic complexity of the vanilla transformer with sequence le
 \input{sections/06-results.tex}
 \input{sections/07-conclusions.tex}
 \clearpage
-
+\input{sections/table-of-symbols.tex}
+\clearpage
 \bibliography{paper-scaleformer}
 
 \end{document}
