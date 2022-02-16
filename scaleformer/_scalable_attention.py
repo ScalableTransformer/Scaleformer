@@ -212,25 +212,25 @@ class ScalableAttention(torch.nn.Module):
         Parameters
         ----------
         pq : torch.Tensor
-            query tensor of shape (N, H, Lq, D)
+            query tensor of shape (N, H, Lq, d)
         pk : torch.Tensor
-            key tensor of shape (N, H, Lk, D)
+            key tensor of shape (N, H, Lk, d)
         v : torch.Tensor
-            value tensor of shape (N, H, Lk, D)
+            value tensor of shape (N, H, Lk, d)
         masked : bool
             If True, returns unidirectional attention
         """
         if masked:
-            N, H, Lq, D = pq.shape
-            _, _, Lk, _ = pk.shape
-            unrolled_left = pq - torch.cat([torch.zeros(N, H, 1, D),
-                                           pq[..., :-1, :]], dim=-2)
-            unrolled_right = pk.unsqueeze(-2)*v.unsqueeze(-1)
-            result = torch.cumsum(torch.matmul(unrolled_left.unsqueeze(-2),
-                                               unrolled_right),
-                                  dim=-2).squeeze(-2)
-        elif masked:
-            N, H, Lq, D = pq.shape
+        #     N, H, Lq, d = pq.shape
+        #     _, _, Lk, _ = pk.shape
+        #     unrolled_left = pq - torch.cat([torch.zeros(N, H, 1, d),
+        #                                    pq[..., :-1, :]], dim=-2)
+        #     unrolled_right = pk.unsqueeze(-2)*v.unsqueeze(-1)
+        #     result = torch.cumsum(torch.matmul(unrolled_left.unsqueeze(-2),
+        #                                        unrolled_right),
+        #                           dim=-2).squeeze(-2)
+        # elif masked:
+            N, H, Lq, d = pq.shape
             _, _, Lk, _ = pk.shape
             # unrolled_right_1 = k.unsqueeze(-2)*v.unsqueeze(-1)
             # right = torch.cumsum(unrolled_right, dim=-3)
@@ -238,7 +238,7 @@ class ScalableAttention(torch.nn.Module):
             right = torch.cumsum(unrolled_right, dim=-1).permute(0, 1, 4, 2, 3)
             if Lq > Lk:
                 right = torch.cat([right, right[..., -1:, :, :].expand(
-                    N, H, Lq-Lk, D, D)], dim=-3)
+                    N, H, Lq-Lk, d, d)], dim=-3)
             elif Lk > Lq:
                 right = right[..., :Lq, :, :]
             result = torch.matmul(pq.unsqueeze(-2), right).squeeze(-2)

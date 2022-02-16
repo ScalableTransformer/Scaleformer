@@ -1,0 +1,50 @@
+\begin{algorithm*}
+	\caption{calculation of $A^{rel}$ with linear complexity}
+	\label{alg:A_rel}
+	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
+	\NextInput{$RP$ relative position embeddings, tensor of shape $(2k+1, d)$}
+	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
+	\KwData{$W$ tensor of shape $(L_Q, 2k+1)$}
+	\NextData{$n_{before} := min(max(0, L_Q-k), L_K)$, scalar}
+	\NextData{$p_{before} := min(k, L_Q)$, scalar}
+	\NextData{$Cumulated$ tensor of shape $(L_Q, d)$}
+	\NextData{$Summed$ tensor of shape $(d)$}
+	\NextData{$Rcumulated$ tensor of shape $(L_Q, d)$}
+	\NextData{$W^{horizon}$ tensor of shape $(L_Q, 2k-1)$}
+	\NextData{$V^{horizon}$ tensor of shape $(L_Q, 2k-1, d)$}
+	\NextData{$n_{after} := min(L_Q+k, L_K)$, scalar}
+	\NextData{$p_{after} := max(0, Lq-max(0, Lk-k))$, scalar}
+	\KwResult{$A_{rel}$ tensor of shape $(L_Q, d)$}
+	$W := \phi(Q) \times RP^T$\\
+	$Cumulated := cumsum(V, dim=0)$\\
+	$W^{before}_{i} := W_{i,0}$\\
+	$V^{before}_{ij} := 
+	\begin{cases}
+		0 & \text{if }i < p_{before}\\
+		Cumulated_{i-p_{before}, j} & otherwise\\
+	\end{cases}$\\
+	$A^{before}_{ij} := W^{before}_{i} \times V^{before}_{ij}$\\
+	$W^{horizon}_{ij} := W_{i+1,j}$\\
+	$V^{horizon}_{ijl} :=
+	\begin{cases}
+		V_{i-k+1+j, l} & \text{if }0 \leq (i-k+1+j) < L_K\\
+		0 & \text{otherwise} 
+	\end{cases}$\\
+	$A^{horizon}_{il} := \sum_j \left( W^{horizon}_{ij} \times V^{horizon}_{ijl} \right)$\\
+	$Summed_{j} := \sum_i \left( V_{ij}\right)$\\
+	$Rcumulated_{ij} := 
+	\begin{cases}
+		Summed_{j} & \text{if }i=0\\
+		Summed_{j} - Cumulated_{i-1,j} & otherwise
+	\end{cases}$\\
+	$W^{after}_{i} := W_{i, 2k}$\\
+	$V^{after}_{ij} := 
+	\begin{cases}
+		Rcumulated_{i+k-1,j} & \text{if }i<n_{after}\\
+		0 & otherwise
+	\end{cases}$\\
+	$A^{after}_{ij} := W^{after}_{i} \times V^{after}_{ij}$\\
+	$A^{rel}_{ij} := A^{before}_{ij} + A^{horizon}_{ij} + A^{after}_{ij}$
+\end{algorithm*}
+
+\endinput

@@ -1,0 +1,15 @@
+\begin{algorithm*}
+	\caption{calculation of $A^{masked}$ with linear complexity}
+	\label{alg:A_masked}
+	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
+	\NextInput{$\phi(K)$ key vectors, tensor of shape $(L_K, d)$}
+	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
+	\KwData{Expanded tensor of shape $(L_K, d, d)$}
+	\NextData{Summed tensor of shape $(L_K, d, d)$}
+	\NextData{Aligned tensor of shape $(L_Q, d, d)$}
+	\KwResult{$A^{masked}$ tensor of shape $(L_Q, d)$}
+	$\text{Expanded}_{kjl} := V_{kj} \times \phi(K)_{kl}$\\
+	$\text{Summed} := cumsum\left(\text{Expanded}, \text{dim=0}\right)$\\
+	$\text{Aligned} := align(\text{Right}, L_Q, \text{dim=0})$\\
+	$A^{masked}_{ij} := \sum_k \left( \phi(Q)_{ik} \times \text{Aligned}_{ikj} \right)$
+\end{algorithm*}

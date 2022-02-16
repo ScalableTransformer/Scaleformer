@@ -1,17 +1,17 @@
 \section*{Table of symbols}
 
-\begin{itemize}
-	\item $A_{rel}$ the result of the dot product attention operation, tensor of shape ($L_Q$, $d$)
-	\item $D$ the embedding dimension
-	\item $d$ the projection dimension
-	\item $h$ the number of heads
-	\item $K$ the keys linked to the attended sequence, tensor of shape ($L_K$, $d$)
-	\item $L_k$ the sequence length of the attended sequence
-	\item $L_Q$ the sequence length of the transformed sequence
-	\item $Q$  the query linked to the sequence to transform, tensor of shape ($L_Q$, $d$)
-	\item $R$ the radius of the attention horizon
-	\item $S_{rel}$
-	\item $V$ the values linked to the attended sequence, tensor of shape ($L_K$, $d$)
-\end{itemize}
+\begin{tabular}{cp{0.5\textwidth}}
+	$\boldsymbol{A_{rel}}$ & the result of the dot product attention operation, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{d}$ & the projection dimension\\
+	$\boldsymbol{D}$ & the embedding dimension\\
+	$\boldsymbol{h}$ & the number of heads\\
+	$\boldsymbol{k}$ & the radius of the attention horizon\\
+	$\boldsymbol{K}$ & the keys linked to the attended sequence, tensor of shape ($L_K$, $d$)\\
+	$\boldsymbol{L_K}$ & the sequence length of the attended sequence\\
+	$\boldsymbol{L_Q}$ & the sequence length of the transformed sequence\\
+	$\boldsymbol{Q}$ & the query linked to the sequence to transform, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{S_{rel}}$ & The matrix of relative position scores, tensor of shape ($L_Q$, $L_K$)\\
+	$\boldsymbol{V}$ & the values linked to the attended sequence, tensor of shape ($L_K$, $d$)\\
+\end{tabular}
 
 \endinput
