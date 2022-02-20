@@ -6,7 +6,9 @@ In this section we will detail the prefix sum algorithm proposed by
 functions of neural network frameworks. The masked kernelized attention is defined as:
 
 \begin{equation}
-A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K)^T \right) \times V
+\resizebox{0.8\hsize}{!}{$
+	A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K)^T \right) \times V
+$}
 \end{equation}
 
 In this expression, $\mathrm{masked}$ being the operation that set all cells
@@ -26,7 +28,7 @@ A^{masked} = S^{masked} \times V
 in summation form is expressed as
 
 \begin{equation}
-A^{masked}_{ij} = \sum_k V_{kj} \times S^{masked}_{ik}
+A^{masked}_{ij} = \sum_k S^{masked}_{ik} \times V_{kj}
 \end{equation}
 
 \noindent{}and the
@@ -54,7 +56,7 @@ Putting these elements together leads to
 
 \begin{equation}
 	\resizebox{0.8\hsize}{!}{
-		$A^{masked}_{ij}= \sum_l \left( \phi(Q)_{il} \times \sum_{k=1}^i \left(V_{kj} \times \phi(K)_{kl} \right) \right)$
+		$A^{masked}_{ij}= \sum_l \left( \phi(Q)_{il} \times \sum_{k=1}^i \left(\phi(K)_{kl} \times V_{kj} \right) \right)$
 	}
 \end{equation}
 

@@ -1,6 +1,6 @@
 \section{Results}
 
-The various algorithms have been timed on CPU and runtimes have been plotted against sequences length in log2-log2 scale. Algorithms that scale linearly with sequence length have a slope of 1, while algorithms that scale quadratically with sequence length have a slope of 2. The Figure \ref{fig:RPE_timings}, shows the timings of the $A_{rel}$ matrix calculation.
+The various algorithms have been timed on CPU and runtimes have been plotted against sequences length in log2-log2 scale. Algorithms that scale linearly with sequence length have a slope of 1, while algorithms that scale quadratically with sequence length have a slope of 2. The Figure \ref{fig:RPE_timings}, shows the timings of the $A^{rel}$ matrix calculation.
 
 On Figure \ref{fig:kernelized_attention_timings} the kernelized attention algorithms have been timed. We can observe that although our algorithm for masked attention has a linear complexity, it is still often slower than the quadratic complexity algorithm. The bottleneck in our implementation was the cumulated sum operation.
 

@@ -1,7 +1,7 @@
 \section*{Table of symbols}
 
 \begin{tabular}{cp{0.5\textwidth}}
-	$\boldsymbol{A_{rel}}$ & the result of the dot product attention operation, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{A}$ & the result of the attention operation, tensor of shape ($L_Q$, $d$)\\
 	$\boldsymbol{d}$ & the projection dimension\\
 	$\boldsymbol{D}$ & the embedding dimension\\
 	$\boldsymbol{h}$ & the number of heads\\
@@ -10,6 +10,7 @@
 	$\boldsymbol{L_K}$ & the sequence length of the attended sequence\\
 	$\boldsymbol{L_Q}$ & the sequence length of the transformed sequence\\
 	$\boldsymbol{Q}$ & the query linked to the sequence to transform, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{RP}$ & The relative position embeddings, tensor of shape ($2k+1$, $d$)\\
 	$\boldsymbol{S_{rel}}$ & The matrix of relative position scores, tensor of shape ($L_Q$, $L_K$)\\
 	$\boldsymbol{V}$ & the values linked to the attended sequence, tensor of shape ($L_K$, $d$)\\
 \end{tabular}
