@@ -1,9 +1,10 @@
-\begin{algorithm*}
+\begin{algorithm*}[ht]
 	\caption{calculation of $A^{rel}$ with linear complexity}
 	\label{alg:A_rel}
 	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
 	\NextInput{$\phi(RP)$ relative position embeddings, of shape $(2k+1, d)$}
 	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
+	\vskip12pt
 	\KwData{$W$ tensor of shape $(L_Q, 2k+1)$}
 	\NextData{$n_{before} := min(max(0, L_Q-k), L_K)$, scalar}
 	\NextData{$p_{before} := min(k, L_Q)$, scalar}
@@ -14,36 +15,51 @@
 	\NextData{$V^{horizon}$ tensor of shape $(L_Q, 2k-1, d)$}
 	\NextData{$n_{after} := min(L_Q+k, L_K)$, scalar}
 	\NextData{$p_{after} := max(0, Lq-max(0, Lk-k))$, scalar}
+	\vskip12pt
 	\KwResult{$A_{rel}$ tensor of shape $(L_Q, d)$}
+	\vskip12pt
 	$W := \phi(Q) \times \phi(RP)^T$\\
+	\vskip3pt
 	$Cumulated := cumsum(V, dim=0)$\\
+	\vskip3pt
 	$W^{before}_{i} := W_{i,0}$\\
+	\vskip3pt
 	$V^{before}_{ij} := 
 	\begin{cases}
 		0 & \text{if }i < p_{before}\\
 		Cumulated_{i-p_{before}, j} & otherwise\\
 	\end{cases}$\\
+	\vskip3pt
 	$A^{before}_{ij} := W^{before}_{i} \times V^{before}_{ij}$\\
+	\vskip3pt
 	$W^{horizon}_{ij} := W_{i+1,j}$\\
+	\vskip3pt
 	$V^{horizon}_{ijl} :=
 	\begin{cases}
 		V_{i-k+1+j, l} & \text{if }0 \leq (i-k+1+j) < L_K\\
 		0 & \text{otherwise} 
 	\end{cases}$\\
+	\vskip3pt
 	$A^{horizon}_{il} := \sum_j \left( W^{horizon}_{ij} \times V^{horizon}_{ijl} \right)$\\
+	\vskip3pt
 	$Summed_{j} := \sum_i \left( V_{ij}\right)$\\
+	\vskip3pt
 	$Rcumulated_{ij} := 
 	\begin{cases}
 		Summed_{j} & \text{if }i=0\\
 		Summed_{j} - Cumulated_{i-1,j} & otherwise
 	\end{cases}$\\
+	\vskip3pt
 	$W^{after}_{i} := W_{i, 2k}$\\
+	\vskip3pt
 	$V^{after}_{ij} := 
 	\begin{cases}
 		Rcumulated_{i+k-1,j} & \text{if }i<n_{after}\\
 		0 & otherwise
 	\end{cases}$\\
+	\vskip3pt
 	$A^{after}_{ij} := W^{after}_{i} \times V^{after}_{ij}$\\
+	\vskip3pt
 	$A^{rel}_{ij} := A^{before}_{ij} + A^{horizon}_{ij} + A^{after}_{ij}$
 \end{algorithm*}
 

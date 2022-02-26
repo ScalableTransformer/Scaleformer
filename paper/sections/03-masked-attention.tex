@@ -1,4 +1,4 @@
-\section{Linear complexity masked attention}
+\section{O($L$) masked attention}
 
 In this section we will detail the prefix sum algorithm proposed by
 \citet{choromanski2021rethinking} for
@@ -11,14 +11,13 @@ functions of neural network frameworks. The masked kernelized attention is defin
 $}
 \end{equation}
 
-In this expression, $\mathrm{masked}$ being the operation that set all cells
+In this expression, $\emph{masked}$ being the operation that set all cells
  above the diagonal to 0 in a matrix. The naive implementation of this
- operation has complexity $O(L_QL_Kd)$.
+ operation has complexity $O(dL_QL_K)$.
 
 We can change the complexity using the operation proposed by
- \citet{choromanski2021rethinking}. We
- will derive its formulation here.
- To start with it, $A^{masked}$ is expressed as
+ \citet{choromanski2021rethinking}, as it will be derived  here.
+ To start with, $A^{masked}$ is expressed as
 
 \begin{equation}
 A^{masked} = S^{masked} \times V
@@ -32,7 +31,7 @@ A^{masked}_{ij} = \sum_k S^{masked}_{ik} \times V_{kj}
 \end{equation}
 
 \noindent{}and the
-elements of $S^{masked}$ are defined as:
+elements of $S^{masked}$ are defined as
 
 \begin{equation}
 	\resizebox{0.8\hsize}{!}{$
@@ -44,7 +43,7 @@ elements of $S^{masked}$ are defined as:
 	}
 \end{equation}
 
-Putting these elements together leads to
+\noindent{}putting these elements together leads to
 
 \begin{equation}
 	\resizebox{0.8\hsize}{!}{
@@ -61,8 +60,8 @@ Putting these elements together leads to
 \end{equation}
 
 In this work we make use of these ideas to implement the calculation of
- $A^{masked}$ with complexity $O(max(L_Q, L_K) \times d^2)$ without
- custom CUDA code as per the algorithm \ref{alg:A_masked}. With:
+ $A^{masked}$ with complexity $O(\max(L_Q, L_K) \times d^2)$ without
+ custom CUDA code as per the algorithm \ref{alg:A_masked}. The following functions are provided:
  \begin{itemize}
  	\item $align(tensor, n, dim)$ the function that truncates or repeats the last value so that $tensor$ has length $n$ along the given dimension
  	\item $cumsum(tensor, dim)$ the function that returns the cumulated sum along the given dimension

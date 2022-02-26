@@ -1,18 +1,18 @@
-\section{Linear complexity RPE}
+\section{Linear complexity RPE\protect\footnote{Relative Positional Encoding}}
 
 In this section we will detail how the relative positional encoding
  proposed by \citet{shaw2018selfattention}
-can in fact be computed with linear complexity. The $S_{rel}$ matrix of scores is computed as
-${S_{rel}}_{ij} = \vv{Q_i} \cdot \vv{RP}_{clip(i-j, -k, k)}$.
+can in fact be computed with linear complexity. The $S^{rel}$ matrix of scores is computed as
+$S^{rel}_{ij} = \vv{Q_i} \cdot \vv{RP}_{clip(i-j, -k, k)}$.
 
-In figure \ref{fig:S_rel} the colors represent the index of the query and the number the
+In figure \ref{fig:S_rel} the colors represent the index of the query, and the number the
 index of the relative position.
 
-The relative positional encoding's term of the attention is calculated as $A_{rel} = S_{rel} \times V$. Each row of the $A_{rel}$ matrix is a weighted sum of the value vectors $V_i$. Each row of $S_{rel}$ is a set of weights.
+The relative positional encoding term of the attention is calculated as $A^{rel} = S^{rel} \times V$. Each row of the $A^{rel}$ matrix is a weighted sum of the value vectors $V_i$. Each row of $S^{rel}$ is a set of weights.
 
 One can observe in figure \ref{fig:A_rel_naive} that some weights are repeated several times in the
-$S_{rel}$ matrix. Calculating the whole matrix can be avoided by
+$S^{rel}$ matrix. Calculating the whole matrix can be avoided by
 instead calculating all possible weights only once, with complexity
-$O \left(L_Q\times d\times(2k+1)\right)$). As illustrated in figure \ref{fig:A_rel_linear}, the matrix multiplication can then be replaced by a sum of three terms. The embedding dimension of size $d$ is not represented here. Instead the horizontal axis in the figure represents all terms that must be summed. The grey squares represent some zero-padding. The first term is a cumulated sum of the value vectors that is weighted  by the before-horizon set of weights (complexity $O(max(L_Q, L_K))$). The second term is a weighed sum of a moving window of the value vectors. Where the weights are the central diagonal of the $S_{rel}$ matrix. (complexity $O(L_Q \times (2k-1) \times d)$). The last term is similar to the first term, but for the after-horizon set of weights (complexity $O(max(L_Q, L_K))$). The implementation is given in algorithm \ref{alg:A_rel}. The algorithm can be extended to masked attention by settings all vectors of the $RP$ matrix with strictly positive indexes to $\vec{0}$.
+$O \left(L_Q\times d\times(2k+1)\right)$). As illustrated in figure \ref{fig:A_rel_linear}, the matrix multiplication can then be replaced by a sum of three terms. The grey squares represent some zero-padding. The first term is a cumulated sum of the value vectors that is weighted  by the before-horizon set of weights (complexity $O(\max(L_Q, L_K))$). The second term is a weighed sum of a moving window of the value vectors. Where the weights are the central diagonal of the $S^{rel}$ matrix. (complexity $O(L_Q \times (2k-1) \times d)$). The last term is similar to the first term, but for the after-horizon set of weights (complexity $O(\max(L_Q, L_K))$). The implementation is given in algorithm \ref{alg:A_rel}. The algorithm can be extended to masked attention by setting all vectors of the $RP$ matrix with strictly positive indexes to $\vec{0}$.
 
 \endinput
