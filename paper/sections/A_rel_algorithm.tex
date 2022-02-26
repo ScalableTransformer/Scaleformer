@@ -2,7 +2,7 @@
 	\caption{calculation of $A^{rel}$ with linear complexity}
 	\label{alg:A_rel}
 	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
-	\NextInput{$\phi(RP)$ relative position embeddings, tensor of shape $(2k+1, d)$}
+	\NextInput{$\phi(RP)$ relative position embeddings, of shape $(2k+1, d)$}
 	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
 	\KwData{$W$ tensor of shape $(L_Q, 2k+1)$}
 	\NextData{$n_{before} := min(max(0, L_Q-k), L_K)$, scalar}
