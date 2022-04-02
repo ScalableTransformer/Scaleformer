@@ -1,0 +1,68 @@
+\section{linear complexity masked attention}
+
+In this section we will detail the prefix sum algorithm proposed by
+\citet{choromanski2021rethinking} for
+ masked kernelized attention, and give an implementation with usual
+functions of neural network frameworks. The masked kernelized attention is defined as:
+
+\begin{equation}
+\resizebox{0.8\hsize}{!}{$
+	A^{masked} = \mathrm{masked} \left( \phi(Q) \times \phi(K)^T \right) \times V
+$}
+\end{equation}
+
+In this expression, $\emph{masked}$ being the operation that set all cells
+ above the diagonal to 0 in a matrix. The naive implementation of this
+ operation has complexity $O(dL_QL_K)$.
+
+We can change the complexity using the operation proposed by
+ \citet{choromanski2021rethinking}, as it will be derived  here.
+ To start with, $A^{masked}$ is expressed as
+
+\begin{equation}
+A^{masked} = S^{masked} \times V
+\end{equation}
+
+\noindent{}which
+in summation form is expressed as
+
+\begin{equation}
+A^{masked}_{ij} = \sum_k S^{masked}_{ik} \times V_{kj}
+\end{equation}
+
+\noindent{}and the
+elements of $S^{masked}$ are defined as
+
+\begin{equation}
+	\resizebox{0.8\hsize}{!}{$
+		S^{masked}_{ik} =
+		\begin{cases}
+		\sum_l \left( \phi(Q)_{il} \times \phi(K)_{kl} \right) & \text{if } k \leq i\\
+		0 & \text{otherwise} 
+		\end{cases}$
+	}
+\end{equation}
+
+\noindent{}putting these elements together leads to
+
+\begin{equation}
+	\resizebox{0.8\hsize}{!}{
+		$A^{masked}_{ij}= \sum_{k=1}^i \left( V_{kj} \times \sum_l \left( \phi(Q)_{il} \times \phi(K)_{kl} \right) \right)$
+	}
+\end{equation}
+
+\noindent{}which can be reworked as
+
+\begin{equation}
+	\resizebox{0.8\hsize}{!}{
+		$A^{masked}_{ij}= \sum_l \left( \phi(Q)_{il} \times \sum_{k=1}^i \left(\phi(K)_{kl} \times V_{kj} \right) \right)$
+	}
+\end{equation}
+
+In this work we make use of these ideas to implement the calculation of
+ $A^{masked}$ with complexity $O(\max(L_Q, L_K) \times d^2)$ without
+ custom CUDA code as per the algorithm \ref{alg:A_masked}. The following functions are provided:
+ \begin{itemize}
+ 	\item $align(tensor, n, dim)$ the function that truncates or repeats the last value so that $tensor$ has length $n$ along the given dimension
+ 	\item $cumsum(tensor, dim)$ the function that returns the cumulated sum along the given dimension
+ \end{itemize}

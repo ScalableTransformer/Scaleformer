@@ -1,0 +1,20 @@
+\section*{Table of symbols}
+
+\begin{table}[H]
+\begin{tabular}{cl}
+	$\boldsymbol{A}$ & result of the attention operation, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{d}$ & projection dimension\\
+	$\boldsymbol{D}$ & embedding dimension\\
+	$\boldsymbol{h}$ & number of heads\\
+	$\boldsymbol{k}$ & radius of the attention horizon\\
+	$\boldsymbol{K}$ & keys linked to the attended sequence, tensor of shape ($L_K$, $d$)\\
+	$\boldsymbol{L_K}$ & sequence length of the attended sequence\\
+	$\boldsymbol{L_Q}$ & sequence length of the transformed sequence\\
+	$\boldsymbol{Q}$ & query linked to the sequence to transform, tensor of shape ($L_Q$, $d$)\\
+	$\boldsymbol{RP}$ & relative position embeddings, tensor of shape ($2k+1$, $d$)\\
+	$\boldsymbol{S^{rel}}$ & matrix of relative position scores, tensor of shape ($L_Q$, $L_K$)\\
+	$\boldsymbol{V}$ & values linked to the attended sequence, tensor of shape ($L_K$, $d$)\\
+\end{tabular}
+\end{table}
+
+\endinput

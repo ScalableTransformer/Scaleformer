@@ -1,0 +1,63 @@
+\documentclass[lettersize,journal]{IEEEtran}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{esvect}
+\usepackage{xfrac}
+% Clickable references and more hyperlinks.
+\usepackage{hyperref}
+% For author affiliation.
+\usepackage{authblk}
+% \text in math mode and others.
+\usepackage{amsmath}
+% \includegraphics.
+\usepackage{graphicx}
+% Citation styles
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
+% for algorithms
+\usepackage[]{algorithm2e}
+\RestyleAlgo{boxruled}
+
+\newlength\mylen
+\newcommand\NextInput[1]{%
+	\settowidth\mylen{\KwIn{}}%
+	\setlength\hangindent{\mylen}%
+	\hspace*{\mylen}#1\\}
+
+\newcommand\NextData[1]{%
+	\settowidth\mylen{\KwData{}}%
+	\setlength\hangindent{\mylen}%
+	\hspace*{\mylen}#1\\}
+
+\begin{document}
+\title{Scaleformer : a scalable transformer with linear complexity and relative positional encoding}
+
+\author[1]{Benoit Favier}
+\author[2]{Walter Dal'Maz Silva}
+
+\affil[1]{Phealing}
+\affil[2]{Unaffiliated}
+
+\maketitle
+
+\begin{abstract}
+To overcome the quadratic complexity with sequence length of the original transformer, some previous works proposed a kernelized attention mechanism which can scale linearly depending on operation orders. Other works proposed to change the way the position of each token is encoded so that the model depends on relative distance between tokens instead of absolute position. In this work we propose a novel algorithm to combine kernelized attention with relative positional encoding while still scaling linearly in complexity.
+\end{abstract}
+
+\input{sections/01-introduction.tex}
+\input{sections/A_rel_S_rel_naive_calculation.tex}
+\input{sections/02-background.tex}
+\input{sections/A_rel_linear_calculation.tex}
+\input{sections/A_rel_algorithm.tex}
+\input{sections/03-masked-attention.tex}
+\input{sections/A_masked_algorithm.tex}
+\input{sections/04-rpe-implementation.tex}
+\input{sections/timings.tex}
+\input{sections/05-scalable-transformer.tex}
+\input{sections/06-results.tex}
+\input{sections/07-conclusions.tex}
+\input{sections/table-of-symbols.tex}
+
+\bibliography{paper-scaleformer}
+
+\end{document}
