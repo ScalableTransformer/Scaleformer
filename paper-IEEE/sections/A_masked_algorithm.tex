@@ -1,10 +1,10 @@
 \begin{algorithm}[!h]
 	\small
-	\caption{O($L$) calculation of $A^{masked}$}
+	\caption{O($L$) calculation of \resizebox{0.35\hsize}{!}{$\mathrm{masked} \left( \phi(Q) \times \phi(K)^T \right) \times V$}}
 	\label{alg:A_masked}
-	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
-	\NextInput{$\phi(K)$ key vectors, tensor of shape $(L_K, d)$}
-	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
+	\KwIn{$\phi(Q)$ tensor of shape $(L_Q, d)$}
+	\NextInput{$\phi(K)$ tensor of shape $(L_K, d)$}
+	\NextInput{$V$ tensor of shape $(L_K, d)$}
 	\vskip12pt
 	\KwData{Expanded tensor of shape $(L_K, d, d)$}
 	\NextData{Summed tensor of shape $(L_K, d, d)$}

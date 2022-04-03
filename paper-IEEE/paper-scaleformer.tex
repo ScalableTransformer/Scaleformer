@@ -41,16 +41,16 @@
 \maketitle
 
 \begin{abstract}
-To overcome the quadratic complexity with sequence length of the original transformer, some previous works proposed a kernelized attention mechanism which can scale linearly depending on operation orders. Other works proposed to change the way the position of each token is encoded so that the model depends on relative distance between tokens instead of absolute position. In this work we propose a novel algorithm to combine kernelized attention with relative positional encoding while still scaling linearly in complexity.
+To overcome the quadratic complexity of the original transformer, some previous works proposed a kernelized attention mechanism which scales linearly with sequence length. Other works proposed to change the way the position of each token is encoded so that the model depends on relative distance between tokens instead of absolute position. In this work we propose a novel algorithm to combine kernelized attention with relative positional encoding while still scaling linearly in complexity. The proposed algorithm can be implemented with usual functions of neural network frameworks.
 \end{abstract}
 
 \input{sections/01-introduction.tex}
 \input{sections/A_rel_S_rel_naive_calculation.tex}
 \input{sections/02-background.tex}
 \input{sections/A_rel_linear_calculation.tex}
-\input{sections/A_rel_algorithm.tex}
 \input{sections/03-masked-attention.tex}
 \input{sections/A_masked_algorithm.tex}
+\input{sections/A_rel_algorithm.tex}
 \input{sections/04-rpe-implementation.tex}
 \input{sections/timings.tex}
 \input{sections/05-scalable-transformer.tex}

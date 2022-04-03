@@ -221,19 +221,8 @@ class ScalableAttention(torch.nn.Module):
             If True, returns unidirectional attention
         """
         if masked:
-        #     N, H, Lq, d = pq.shape
-        #     _, _, Lk, _ = pk.shape
-        #     unrolled_left = pq - torch.cat([torch.zeros(N, H, 1, d),
-        #                                    pq[..., :-1, :]], dim=-2)
-        #     unrolled_right = pk.unsqueeze(-2)*v.unsqueeze(-1)
-        #     result = torch.cumsum(torch.matmul(unrolled_left.unsqueeze(-2),
-        #                                        unrolled_right),
-        #                           dim=-2).squeeze(-2)
-        # elif masked:
             N, H, Lq, d = pq.shape
             _, _, Lk, _ = pk.shape
-            # unrolled_right_1 = k.unsqueeze(-2)*v.unsqueeze(-1)
-            # right = torch.cumsum(unrolled_right, dim=-3)
             unrolled_right = torch.einsum("nhli, nhlj -> nhijl", pk, v)
             right = torch.cumsum(unrolled_right, dim=-1).permute(0, 1, 4, 2, 3)
             if Lq > Lk:

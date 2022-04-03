@@ -1,30 +1,31 @@
 \begin{algorithm}[!ht]
 	\small
-	\caption{O($L$) calculation of $A^{rel}$}
+	\caption{O($L$) calculation of $S^{rel} \times V$}
 	\label{alg:A_rel}
-	\KwIn{$\phi(Q)$ query vectors, tensor of shape $(L_Q, d)$}
-	\NextInput{$\phi(RP)$ relative position embeddings, of shape $(2k+1, d)$}
-	\NextInput{$V$ value vectors, tensor of shape $(L_K, d)$}
+	\KwIn{$\phi(Q)$ tensor of shape $(L_Q, d)$}
+	\NextInput{$\phi(RP)$ tensor of shape $(2k+1, d)$}
+	\NextInput{$V$ tensor of shape $(L_K, d)$}
 	\vskip12pt
 	\KwData{$W$ tensor of shape $(L_Q, 2k+1)$}
-	\NextData{$n_{before} := min(max(0, L_Q-k), L_K)$, scalar}
-	\NextData{$p_{before} := min(k, L_Q)$, scalar}
 	\NextData{$Cumulated$ tensor of shape $(L_Q, d)$}
 	\NextData{$Summed$ tensor of shape $(d)$}
 	\NextData{$Rcum$ tensor of shape $(L_Q, d)$}
 	\NextData{$W^{horizon}$ tensor of shape $(L_Q, 2k-1)$}
 	\NextData{$V^{horizon}$ tensor of shape $(L_Q, 2k-1, d)$}
+	\NextData{$W^{before/after}$ vectors of length $L_Q$}
+	\NextData{$V^{before/after}$ tensors of shape $(L_Q, d)$}
+	\NextData{$A^{before/horizon/after}$ tensors of shape $(L_Q, d)$}
+	\NextData{$n_{before} := min(k, L_Q)$, scalar}
 	\NextData{$n_{after} := min(L_Q+k, L_K)$, scalar}
-	\NextData{$p_{after} := max(0, Lq-max(0, Lk-k))$, scalar}
 	\vskip12pt
-	\KwResult{$A_{rel}$ tensor of shape $(L_Q, d)$}
+	\KwResult{$A^{rel}$ tensor of shape $(L_Q, d)$}
 	\vskip12pt
 	$W := \phi(Q) \times \phi(RP)^T$\\
 	$Cumulated := cumsum(V, dim=0)$\\
 	$W^{before}_{i} := W_{i,0}$\\
 	$V^{before}_{ij} := 
 	\begin{cases}
-		0 & \text{if }i < p_{before}\\
+		0 & \text{if }i < n_{before}\\
 		Cumulated_{i-p_{before}, j} & otherwise\\
 	\end{cases}$\\
 	$A^{before}_{ij} := W^{before}_{i} \times V^{before}_{ij}$\\
