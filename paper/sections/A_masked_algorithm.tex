@@ -13,6 +13,6 @@
 	\vskip12pt
 	$\text{Expanded}_{kjl} := V_{kj} \times \phi(K)_{kl}$\\
 	$\text{Summed} := cumsum\left(\text{Expanded}, \text{dim=0}\right)$\\
-	$\text{Aligned} := align(\text{Right}, L_Q, \text{dim=0})$\\
+	$\text{Aligned} := align(\text{Summed}, L_Q, \text{dim=0})$\\
 	$A^{masked}_{ij} := \sum_k \left( \phi(Q)_{ik} \times \text{Aligned}_{ikj} \right)$
 \end{algorithm*}
